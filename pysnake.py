@@ -1,102 +1,223 @@
-# importing module
+# import required modules
 from selenium import webdriver
-import os
-import time
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.common.keys import Keys
-from webdriver_manager.chrome import ChromeDriverManager
-
-driver = webdriver.Chrome(ChromeDriverManager().install())
-
-# enter receiver user name
-user = ['User_name', 'User_name ']
-message_ = ("final test")
+import selenium.common.exceptions
+import time
+from bs4 import BeautifulSoup as bs
+import requests
+import os
 
 
-class bot:
-	def __init__(self, username, password, user, message):
-		self.username = username
-		self.password = password
-		self.user = user
-		self.message = message
-		self.base_url = 'https://www.instagram.com/'
-		self.bot = driver
-		self.login()
+# get instagram account credentials
+username = input('Enter Your User Name ')
+password = input('Enter Your Password ')
 
-	def login(self):
-		self.bot.get(self.base_url)
+# assign URL
+url = 'https://instagram.com/' + \
+	input('Enter User Name Of User For Downloading Posts ')
 
-		enter_username = WebDriverWait(self.bot, 20).until(
-			expected_conditions.presence_of_element_located((By.NAME, 'username')))
-		enter_username.send_keys(self.username)
-		enter_password = WebDriverWait(self.bot, 20).until(
-			expected_conditions.presence_of_element_located((By.NAME, 'password')))
-		enter_password.send_keys(self.password)
-		enter_password.send_keys(Keys.RETURN)
-		time.sleep(5)
+# Get URL path
+def path():
+	global chrome
+	# starts a new chrome session
+	# add path if required
+	chrome = webdriver.Chrome()
+	
+# Extract URL
+def url_name(url):
+	# the web page opens up
+	chrome.get(url)
+	
+	# webdriver will wait for 4 sec before throwing a
+	# NoSuchElement exception so that the element
+	# is detected and not skipped.
+	time.sleep(4)
+	
+# Login to access post
+def login(username, your_password):
+	log_but = chrome.find_element_by_class_name("L3NKy")
+	time.sleep(2)
+	log_but.click()
+	time.sleep(4)
+	# finds the username box
+	usern = chrome.find_element_by_name("username")
+	# sends the entered username
+	usern.send_keys(username)
 
-		# first pop-up
-		self.bot.find_element_by_xpath(
-			'//*[@id="react-root"]/section/main/div/div/div/div/button').click()
-		time.sleep(3)
+	# finds the password box
+	passw = chrome.find_element_by_name("password")
 
-		# 2nd pop-up
-		self.bot.find_element_by_xpath(
-			'/html/body/div[4]/div/div/div/div[3]/button[2]').click()
-		time.sleep(4)
+	# sends the entered password
+	passw.send_keys(your_password)
 
-		# direct button
-		self.bot.find_element_by_xpath(
-			'//a[@class="xWeGp"]/*[name()="svg"][@aria-label="Direct"]').click()
-		time.sleep(3)
+	# sends the enter key
+	passw.send_keys(Keys.RETURN)
 
-		# clicks on pencil icon
-		self.bot.find_element_by_xpath(
-			'//*[@id="react-root"]/section/div/div[2]/div/div/div[2]/div/button').click()
-		time.sleep(2)
-		for i in user:
+	time.sleep(5.5)
 
-			# enter the username
-			self.bot.find_element_by_xpath(
-				'/html/body/div[4]/div/div/div[2]/div[1]/div/div[2]/input').send_keys(i)
-			time.sleep(2)
+	# Find Not Now Button
+	notn = chrome.find_element_by_class_name("yWX7d")
 
-			# click on the username
-			self.bot.find_element_by_xpath(
-				'/html/body/div[4]/div/div/div[2]/div[2]/div').click()
-			time.sleep(2)
+	notn.click()
+	time.sleep(3)
+	
+# Function to get content of first post
+def first_post():
+	pic = chrome.find_element_by_class_name("kIKUG").click()
+	time.sleep(2)
+	
+# Function to get next post
+def next_post():
+	try:
+		nex = chrome.find_element_by_class_name(
+			"coreSpriteRightPaginationArrow")
+		return nex
+	except selenium.common.exceptions.NoSuchElementException:
+		return 0
+	
+# Download content of all posts
+def download_allposts():
 
-			# next button
-			self.bot.find_element_by_xpath(
-				'/html/body/div[4]/div/div/div[1]/div/div[2]/div/button').click()
-			time.sleep(2)
+	# open First Post
+	first_post()
 
-			# click on message area
-			send = self.bot.find_element_by_xpath(
-				'/html/body/div[1]/section/div/div[2]/div/div/div[2]/div[2]/div/div[2]/div/div/div[2]/textarea')
+	user_name = url.split('/')[-1]
 
-			# types message
-			send.send_keys(self.message)
-			time.sleep(1)
+	# check if folder corresponding to user name exist or not
+	if(os.path.isdir(user_name) == False):
 
-			# send message
-			send.send_keys(Keys.RETURN)
-			time.sleep(2)
+		# Create folder
+		os.mkdir(user_name)
 
-			# clicks on direct option or pencl icon
-			self.bot.find_element_by_xpath(
-				'/html/body/div[1]/section/div/div[2]/div/div/div[1]/div[1]/div/div[3]/button').click()
-			time.sleep(2)
+	# Check if Posts contains multiple images or videos
+	multiple_images = nested_check()
 
+	if multiple_images:
+		nescheck = multiple_images
+		count_img = 0
+		
+		while nescheck:
+			elem_img = chrome.find_element_by_class_name('rQDP3')
 
-def init():
-	bot('nhcecircles@gmail.com', 'nhcelovers@2468',user, message_)
+			# Function to save nested images
+			save_multiple(user_name+'/'+'content1.'+str(count_img), elem_img)
+			count_img += 1
+			nescheck.click()
+			nescheck = nested_check()
 
-	# when our program ends it will show "done".
-	input("DONE")
+		# pass last_img_flag True
+		save_multiple(user_name+'/'+'content1.' +
+					str(count_img), elem_img, last_img_flag=1)
+	else:
+		save_content('_97aPb', user_name+'/'+'content1')
+	c = 2
+	
+	while(True):
+		next_el = next_post()
+		
+		if next_el != False:
+			next_el.click()
+			time.sleep(1.3)
+			
+			try:
+				multiple_images = nested_check()
+				
+				if multiple_images:
+					nescheck = multiple_images
+					count_img = 0
+					
+					while nescheck:
+						elem_img = chrome.find_element_by_class_name('rQDP3')
+						save_multiple(user_name+'/'+'content' +
+									str(c)+'.'+str(count_img), elem_img)
+						count_img += 1
+						nescheck.click()
+						nescheck = nested_check()
+					save_multiple(user_name+'/'+'content'+str(c) +
+								'.'+str(count_img), elem_img, 1)
+				else:
+					save_content('_97aPb', user_name+'/'+'content'+str(c))
+			
+			except selenium.common.exceptions.NoSuchElementException:
+				print("finished")
+				return
+		
+		else:
+			break
+		
+		c += 1
 
+# Function to save content of the current post
+def save_content(class_name, img_name):
+	time.sleep(0.5)
+	
+	try:
+		pic = chrome.find_element_by_class_name(class_name)
+	
+	except selenium.common.exceptions.NoSuchElementException:
+		print("Either This user has no images or you haven't followed this user or something went wrong")
+		return
+	
+	html = pic.get_attribute('innerHTML')
+	soup = bs(html, 'html.parser')
+	link = soup.find('video')
+	
+	if link:
+		link = link['src']
+	
+	else:
+		link = soup.find('img')['src']
+	response = requests.get(link)
+	
+	with open(img_name, 'wb') as f:
+		f.write(response.content)
+	time.sleep(0.9)
+	
+# Function to save multiple posts
+def save_multiple(img_name, elem, last_img_flag=False):
+	time.sleep(1)
+	l = elem.get_attribute('innerHTML')
+	html = bs(l, 'html.parser')
+	biglist = html.find_all('ul')
+	biglist = biglist[0]
+	list_images = biglist.find_all('li')
+	
+	if last_img_flag:
+		user_image = list_images[-1]
+	
+	else:
+		user_image = list_images[(len(list_images)//2)]
+	video = user_image.find('video')
+	
+	if video:
+		link = video['src']
+	
+	else:
+		link = user_image.find('img')['src']
+	response = requests.get(link)
+	
+	with open(img_name, 'wb') as f:
+		f.write(response.content)
 
-# calling the function
-init()
+# Function to check if the post is nested
+def nested_check():
+	
+	try:
+		time.sleep(1)
+		nes_nex = chrome.find_element_by_class_name('coreSpriteRightChevron ')
+		return nes_nex
+	
+	except selenium.common.exceptions.NoSuchElementException:
+		return 0
+
+# Driver Code
+path()
+time.sleep(1)
+
+url_name(url)
+
+login(username, password)
+
+download_allposts()
+
+chrome.close()
